@@ -138,24 +138,16 @@ else:
 
         def open_connection(self):
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock = ssl.wrap_socket(
-                sock=sock,
-                keyfile=None,
-                certfile=None,
-                server_side=False,
-                cert_reqs=ssl.CERT_REQUIRED,
-                ssl_version=getattr(
-                    ssl,
-                    'PROTOCOL_TLSv1_2',
-                    ssl.PROTOCOL_TLSv1
-                ),
-                ca_certs=certifi.where(),
-                do_handshake_on_connect=True,
-                suppress_ragged_eofs=True,
-            )
 
-            sock.connect((self.le_api, self.le_tls_port))
-            self._conn = sock
+            context = ssl.create_default_context()
+            context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+            context.verify_mode = ssl.CERT_REQUIRED
+            context.load_verify_locations(cafile=certifi.where(),
+                capath=None, cadata=None)
+            ssock = context.wrap_socket(sock)
+            sock.close()
+            ssock.connect((self.le_api, self.le_tls_port))
+            self._conn = ssock
 
 
 class LogentriesHandler(logging.Handler):
